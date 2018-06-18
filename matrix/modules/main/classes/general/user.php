@@ -2137,183 +2137,238 @@ abstract class CAllUser extends CDBResult
 		return $rs;
 	}
 
-	public 	function Update($ID, $arFields)
-    {
-        /** @global CUserTypeManager $USER_FIELD_MANAGER */
-        global $DB, $USER_FIELD_MANAGER, $CACHE_MANAGER;
+	public function Update($ID, $arFields)
+	{
+		/** @global CUserTypeManager $USER_FIELD_MANAGER */
+		global $DB, $USER_FIELD_MANAGER, $CACHE_MANAGER, $USER;
 
-        $ID = intval($ID);
+		$ID = intval($ID);
 
-        if(!$this->CheckFields($arFields, $ID))
-        {
-            $Result = false;
-            $arFields["RESULT_MESSAGE"] = &$this->LAST_ERROR;
-        }
-        else
-        {
-            unset($arFields["ID"]);
+		if(!$this->CheckFields($arFields, $ID))
+		{
+			$result = false;
+			$arFields["RESULT_MESSAGE"] = &$this->LAST_ERROR;
+		}
+		else
+		{
+			unset($arFields["ID"]);
 
-            if(is_set($arFields, "ACTIVE") && $arFields["ACTIVE"]!="Y")
-                $arFields["ACTIVE"]="N";
+			if(is_set($arFields, "ACTIVE") && $arFields["ACTIVE"]!="Y")
+				$arFields["ACTIVE"]="N";
 
-            if(is_set($arFields, "PERSONAL_GENDER") && ($arFields["PERSONAL_GENDER"]!="M" && $arFields["PERSONAL_GENDER"]!="F"))
-                $arFields["PERSONAL_GENDER"] = "";
+			if(is_set($arFields, "PERSONAL_GENDER") && ($arFields["PERSONAL_GENDER"]!="M" && $arFields["PERSONAL_GENDER"]!="F"))
+				$arFields["PERSONAL_GENDER"] = "";
 
-            if(is_set($arFields, "PASSWORD"))
-            {
-                $original_pass = $arFields["PASSWORD"];
-                $salt = randString(8, array(
-                    "abcdefghijklnmopqrstuvwxyz",
-                    "ABCDEFGHIJKLNMOPQRSTUVWXYZ",
-                    "0123456789",
-                    ",.<>/?;:[]{}\\|~!@#\$%^&*()-_+=",
-                ));
-                $arFields["PASSWORD"] = $salt.md5($salt.$arFields["PASSWORD"]);
-                $rUser = CUser::GetByID($ID);
-                if($arUser = $rUser->Fetch())
-                {
-                    if($arUser["PASSWORD"] != $arFields["PASSWORD"])
-                        $DB->Query("DELETE FROM b_user_stored_auth WHERE USER_ID=".$ID);
-                }
-                if(COption::GetOptionString("main", "event_log_password_change", "N") === "Y")
-                    CEventLog::Log("SECURITY", "USER_PASSWORD_CHANGED", "main", $ID);
-                //$arFields["STORED_HASH"] = CUser::GetPasswordHash($arFields["PASSWORD"]);
-            }
-            unset($arFields["STORED_HASH"]);
+			//we need old values for some actions
+			$arUser = null;
+			if((isset($arFields["ACTIVE"]) && $arFields["ACTIVE"] == "N") || isset($arFields["PASSWORD"]))
+			{
+				$rUser = CUser::GetByID($ID);
+				$arUser = $rUser->Fetch();
+			}
 
-            $checkword = '';
-            if(!is_set($arFields, "CHECKWORD"))
-            {
-                if(is_set($arFields, "PASSWORD") || is_set($arFields, "EMAIL") || is_set($arFields, "LOGIN")  || is_set($arFields, "ACTIVE"))
-                {
-                    $salt =  randString(8);
-                    $checkword = md5(CMain::GetServerUniqID().uniqid());
-                    $arFields["CHECKWORD"] = $salt.md5($salt.$checkword);
-                }
-            }
-            else
-            {
-                $salt =  randString(8);
-                $checkword = $arFields["CHECKWORD"];
-                $arFields["CHECKWORD"] = $salt.md5($salt.$checkword);
-            }
 
-            if(is_set($arFields, "CHECKWORD") && !is_set($arFields, "CHECKWORD_TIME"))
-                $arFields["~CHECKWORD_TIME"] = $DB->CurrentTimeFunction();
 
-            if(is_set($arFields, "WORK_COUNTRY"))
-                $arFields["WORK_COUNTRY"] = intval($arFields["WORK_COUNTRY"]);
+			if(is_set($arFields, "PASSWORD"))
+			{
+				$original_pass = $arFields["PASSWORD"];
+				$salt = randString(8, array(
+					"abcdefghijklnmopqrstuvwxyz",
+					"ABCDEFGHIJKLNMOPQRSTUVWXYZ",
+					"0123456789",
+					",.<>/?;:[]{}\\|~!@#\$%^&*()-_+=",
+				));
+				$arFields["PASSWORD"] = $salt.md5($salt.$arFields["PASSWORD"]);
+				if($arUser)
+				{
+					if($arUser["PASSWORD"] != $arFields["PASSWORD"])
+						$DB->Query("DELETE FROM b_user_stored_auth WHERE USER_ID=".$ID);
+				}
+				if(COption::GetOptionString("main", "event_log_password_change", "N") === "Y")
+					CEventLog::Log("SECURITY", "USER_PASSWORD_CHANGED", "main", $ID);
+			}
+			unset($arFields["STORED_HASH"]);
 
-            if(is_set($arFields, "PERSONAL_COUNTRY"))
-                $arFields["PERSONAL_COUNTRY"] = intval($arFields["PERSONAL_COUNTRY"]);
 
-            if (
-                array_key_exists("PERSONAL_PHOTO", $arFields)
-                && is_array($arFields["PERSONAL_PHOTO"])
-                && (
-                    !array_key_exists("MODULE_ID", $arFields["PERSONAL_PHOTO"])
-                    || $arFields["PERSONAL_PHOTO"]["MODULE_ID"] == ''
-                )
-            )
-            {
-                $arFields["PERSONAL_PHOTO"]["MODULE_ID"] = "main";
-            }
+			$checkword = '';
+			if(!is_set($arFields, "CHECKWORD"))
+			{
+				if(is_set($arFields, "PASSWORD") || is_set($arFields, "EMAIL") || is_set($arFields, "LOGIN")  || is_set($arFields, "ACTIVE"))
+				{
+					$salt =  randString(8);
+					$checkword = md5(CMain::GetServerUniqID().uniqid());
+					$arFields["CHECKWORD"] = $salt.md5($salt.$checkword);
+				}
+			}
+			else
+			{
+				$salt =  randString(8);
+				$checkword = $arFields["CHECKWORD"];
+				$arFields["CHECKWORD"] = $salt.md5($salt.$checkword);
+			}
 
-            CFile::SaveForDB($arFields, "PERSONAL_PHOTO", "main");
+			if(is_set($arFields, "CHECKWORD") && !is_set($arFields, "CHECKWORD_TIME"))
+				$arFields["~CHECKWORD_TIME"] = $DB->CurrentTimeFunction();
 
-            if (
-                array_key_exists("WORK_LOGO", $arFields)
-                && is_array($arFields["WORK_LOGO"])
-                && (
-                    !array_key_exists("MODULE_ID", $arFields["WORK_LOGO"])
-                    || $arFields["WORK_LOGO"]["MODULE_ID"] == ''
-                )
-            )
-            {
-                $arFields["WORK_LOGO"]["MODULE_ID"] = "main";
-            }
+			if(is_set($arFields, "WORK_COUNTRY"))
+				$arFields["WORK_COUNTRY"] = intval($arFields["WORK_COUNTRY"]);
 
-            CFile::SaveForDB($arFields, "WORK_LOGO", "main");
+			if(is_set($arFields, "PERSONAL_COUNTRY"))
+				$arFields["PERSONAL_COUNTRY"] = intval($arFields["PERSONAL_COUNTRY"]);
 
-            $strUpdate = $DB->PrepareUpdate("b_user", $arFields);
+			if (
+				array_key_exists("PERSONAL_PHOTO", $arFields)
+				&& is_array($arFields["PERSONAL_PHOTO"])
+				&& (
+					!array_key_exists("MODULE_ID", $arFields["PERSONAL_PHOTO"])
+					|| $arFields["PERSONAL_PHOTO"]["MODULE_ID"] == ''
+				)
+			)
+			{
+				$arFields["PERSONAL_PHOTO"]["MODULE_ID"] = "main";
+			}
 
-            if(!is_set($arFields, "TIMESTAMP_X"))
-                $strUpdate .= ($strUpdate <> ""? ",":"")." TIMESTAMP_X = ".$DB->GetNowFunction();
+			CFile::SaveForDB($arFields, "PERSONAL_PHOTO", "main");
 
-            $strSql = "UPDATE b_user SET ".$strUpdate." WHERE ID=".$ID;
+			if (
+				array_key_exists("WORK_LOGO", $arFields)
+				&& is_array($arFields["WORK_LOGO"])
+				&& (
+					!array_key_exists("MODULE_ID", $arFields["WORK_LOGO"])
+					|| $arFields["WORK_LOGO"]["MODULE_ID"] == ''
+				)
+			)
+			{
+				$arFields["WORK_LOGO"]["MODULE_ID"] = "main";
+			}
 
-            $DB->Query($strSql, false, "FILE: ".__FILE__."<br> LINE: ".__LINE__);
+			CFile::SaveForDB($arFields, "WORK_LOGO", "main");
 
-            $USER_FIELD_MANAGER->Update("USER", $ID, $arFields);
+			$strUpdate = $DB->PrepareUpdate("b_user", $arFields);
 
-            if(COption::GetOptionString("main", "event_log_user_edit", "N") === "Y")
-            {
-                $res_log["user"] = ($arFields["NAME"] != "" || $arFields["LAST_NAME"] != "") ? trim($arFields["NAME"]." ".$arFields["LAST_NAME"]) : $arFields["LOGIN"];
-                CEventLog::Log("SECURITY", "USER_EDIT", "main", $ID, serialize($res_log));
-            }
+			if(!is_set($arFields, "TIMESTAMP_X"))
+				$strUpdate .= ($strUpdate <> ""? ",":"")." TIMESTAMP_X = ".$DB->GetNowFunction();
 
-            if(is_set($arFields, "GROUP_ID"))
-                CUser::SetUserGroup($ID, $arFields["GROUP_ID"]);
+			$strSql = "UPDATE b_user SET ".$strUpdate." WHERE ID=".$ID;
 
-            //update digest hash for http digest authorization
-            if(isset($arUser["ID"]) && is_set($arFields, "PASSWORD") && COption::GetOptionString('main', 'use_digest_auth', 'N') == 'Y')
-            {
-                /** @noinspection PhpUndefinedVariableInspection */
-                CUser::UpdateDigest($arUser["ID"], $original_pass);
-            }
+			$DB->Query($strSql, false, "FILE: ".__FILE__."<br> LINE: ".__LINE__);
 
-            $Result = true;
-            $arFields["CHECKWORD"] = $checkword;
+			$USER_FIELD_MANAGER->Update("USER", $ID, $arFields);
 
-            //update session information and cache for current user
-            global $USER;
-            if(is_object($USER) && $USER->GetID() == $ID)
-            {
-                static $arSessFields = array(
-                    'LOGIN'=>'LOGIN', 'EMAIL'=>'EMAIL', 'TITLE'=>'TITLE', 'FIRST_NAME'=>'NAME', 'SECOND_NAME'=>'SECOND_NAME', 'LAST_NAME'=>'LAST_NAME',
-                    'PERSONAL_PHOTO'=>'PERSONAL_PHOTO',	'AUTO_TIME_ZONE'=>'AUTO_TIME_ZONE', 'TIME_ZONE'=>'TIME_ZONE');
-                foreach($arSessFields as $key => $val)
-                    if(isset($arFields[$val]))
-                        $USER->SetParam($key, $arFields[$val]);
-                $name = $USER->GetParam("FIRST_NAME");
-                $last_name = $USER->GetParam("LAST_NAME");
-                $USER->SetParam("NAME", $name.($name == '' || $last_name == ''? "":" ").$last_name);
+			if(COption::GetOptionString("main", "event_log_user_edit", "N") === "Y")
+			{
+				$res_log["user"] = ($arFields["NAME"] != "" || $arFields["LAST_NAME"] != "") ? trim($arFields["NAME"]." ".$arFields["LAST_NAME"]) : $arFields["LOGIN"];
+				CEventLog::Log("SECURITY", "USER_EDIT", "main", $ID, serialize($res_log));
+			}
 
-                //cache for GetByID()
-                self::$CURRENT_USER = false;
-            }
-        }
+			if(is_set($arFields, "GROUP_ID"))
+				CUser::SetUserGroup($ID, $arFields["GROUP_ID"]);
 
-        $arFields["ID"] = $ID;
-        $arFields["RESULT"] = &$Result;
+			//update digest hash for http digest authorization
+			if(isset($arUser["ID"]) && is_set($arFields, "PASSWORD") && COption::GetOptionString('main', 'use_digest_auth', 'N') == 'Y')
+			{
+				/** @noinspection PhpUndefinedVariableInspection */
+				CUser::UpdateDigest($arUser["ID"], $original_pass);
+			}
 
-        foreach (GetModuleEvents("main", "OnAfterUserUpdate", true) as $arEvent)
-            ExecuteModuleEventEx($arEvent, array(&$arFields));
 
-        if(defined("BX_COMP_MANAGED_CACHE"))
-        {
-            $CACHE_MANAGER->ClearByTag("USER_CARD_".intval($ID / TAGGED_user_card_size));
-            $CACHE_MANAGER->ClearByTag("USER_CARD");
+			if($arUser)
+			{
+				$authAction = false;
+				if(isset($arFields["ACTIVE"]) && $arUser["ACTIVE"] == "Y" && $arFields["ACTIVE"] == "N")
+				{
+					$authAction = true;
+				}
 
-            static $arNameFields = array("NAME", "LAST_NAME", "SECOND_NAME", "LOGIN", "EMAIL", "PERSONAL_GENDER", "PERSONAL_PHOTO", "WORK_POSITION", "PERSONAL_PROFESSION", "PERSONAL_BIRTHDAY", "TITLE");
-            $bClear = false;
-            foreach($arNameFields as $val)
-            {
-                if(isset($arFields[$val]))
-                {
-                    $bClear = true;
-                    break;
-                }
-            }
-            if ($bClear)
-            {
-                $CACHE_MANAGER->ClearByTag("USER_NAME_".$ID);
-                $CACHE_MANAGER->ClearByTag("USER_NAME");
-            }
-        }
+				$internalUser = true;
+				if(isset($arFields["EXTERNAL_AUTH_ID"]))
+				{
+					if($arFields["EXTERNAL_AUTH_ID"] <> '')
+					{
+						$internalUser = false;
+					}
+				}
+				elseif($arUser["EXTERNAL_AUTH_ID"] <> '')
+				{
+					$internalUser = false;
+				}
 
-        return $Result;
-    }
+				if($internalUser == true && isset($arFields["PASSWORD"]) && $arUser["PASSWORD"] <> $arFields["PASSWORD"])
+				{
+					$authAction = true;
+					if(is_object($USER) && $USER->GetID() == $ID)
+					{
+						//changed password by himself
+						$USER->SetParam("SELF_CHANGED_PASSWORD", true);
+					}
+				}
+
+				if($authAction)
+				{
+					Main\UserAuthActionTable::add(array(
+						'USER_ID' => $ID,
+						'PRIORITY' => Main\UserAuthActionTable::PRIORITY_HIGH,
+						'ACTION' => Main\UserAuthActionTable::ACTION_LOGOUT,
+						'ACTION_DATE' => new Main\Type\DateTime(),
+					));
+				}
+			}
+
+			$result = true;
+			$arFields["CHECKWORD"] = $checkword;
+
+			//update session information and cache for current user
+			if(is_object($USER) && $USER->GetID() == $ID)
+			{
+				static $arSessFields = array(
+					'LOGIN'=>'LOGIN', 'EMAIL'=>'EMAIL', 'TITLE'=>'TITLE', 'FIRST_NAME'=>'NAME', 'SECOND_NAME'=>'SECOND_NAME', 'LAST_NAME'=>'LAST_NAME',
+					'PERSONAL_PHOTO'=>'PERSONAL_PHOTO', 'PERSONAL_GENDER'=>'PERSONAL_GENDER', 'AUTO_TIME_ZONE'=>'AUTO_TIME_ZONE', 'TIME_ZONE'=>'TIME_ZONE');
+				foreach($arSessFields as $key => $val)
+					if(isset($arFields[$val]))
+						$USER->SetParam($key, $arFields[$val]);
+				$name = $USER->GetParam("FIRST_NAME");
+				$last_name = $USER->GetParam("LAST_NAME");
+				$USER->SetParam("NAME", $name.($name == '' || $last_name == ''? "":" ").$last_name);
+
+				//cache for GetByID()
+				self::$CURRENT_USER = false;
+			}
+		}
+
+		$arFields["ID"] = $ID;
+		$arFields["RESULT"] = &$result;
+
+		foreach (GetModuleEvents("main", "OnAfterUserUpdate", true) as $arEvent)
+			ExecuteModuleEventEx($arEvent, array(&$arFields));
+
+		if($arFields["RESULT"] == true)
+		{
+
+			if(defined("MX_COMP_MANAGED_CACHE"))
+			{
+				$CACHE_MANAGER->ClearByTag("USER_CARD_".intval($ID / TAGGED_user_card_size));
+				$CACHE_MANAGER->ClearByTag("USER_CARD");
+
+				static $arNameFields = array("NAME", "LAST_NAME", "SECOND_NAME", "LOGIN", "EMAIL", "PERSONAL_GENDER", "PERSONAL_PHOTO", "WORK_POSITION", "PERSONAL_PROFESSION", "PERSONAL_WWW", "PERSONAL_BIRTHDAY", "TITLE", "EXTERNAL_AUTH_ID", "UF_DEPARTMENT");
+				$bClear = false;
+				foreach($arNameFields as $val)
+				{
+					if(isset($arFields[$val]))
+					{
+						$bClear = true;
+						break;
+					}
+				}
+				if ($bClear)
+				{
+					$CACHE_MANAGER->ClearByTag("USER_NAME_".$ID);
+					$CACHE_MANAGER->ClearByTag("USER_NAME");
+				}
+			}
+		}
+
+		return $result;
+	}
 
 	public static function SetUserGroup($USER_ID, $arGroups, $newUser = false)
 	{
