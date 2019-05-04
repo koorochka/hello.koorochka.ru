@@ -13,38 +13,63 @@
  * @param array $arResult
  * @param CMatrixComponent $this
  */
+
+use Matrix\Main\Localization\Loc;
+Loc::loadLanguageFile(__FILE__);
 if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 ?>
 
 <form class="form-horizontal" role="form">
+
     <div class="form-group">
-        <label for="inputPassword3" class="col-sm-3 control-label">Имя</label>
+        <label for="feedback-name" class="col-sm-3 control-label"><?=Loc::getMessage("FEEDBACK_NAME")?></label>
         <div class="col-sm-8">
-            <input type="password" class="form-control" id="inputPassword3" placeholder="Password">
+            <input type="text"
+                   class="form-control"
+                   id="feedback-name"
+                   name="name"
+                   placeholder="<?=Loc::getMessage("FEEDBACK_NAME_PLACEHOLDER")?>">
         </div>
     </div>
+
     <div class="form-group">
-        <label for="inputEmail3" class="col-sm-3 control-label">Email</label>
+        <label for="feedback-mail" class="col-sm-3 control-label"><?=Loc::getMessage("FEEDBACK_EMAIL")?></label>
         <div class="col-sm-9">
-            <input type="email" class="form-control" id="inputEmail3" placeholder="Email">
+            <input type="email"
+                   class="form-control"
+                   id="feedback-mail"
+                   name="mail"
+                   placeholder="<?=Loc::getMessage("FEEDBACK_EMAIL_PLACEHOLDER")?>">
         </div>
     </div>
+
     <div class="form-group">
-        <label for="inputPassword3" class="col-sm-3 control-label">Телефон</label>
+        <label for="feedback-phone" class="col-sm-3 control-label"><?=Loc::getMessage("FEEDBACK_PHONE")?></label>
         <div class="col-sm-8">
-            <input type="password" class="form-control" id="inputPassword3" placeholder="Password">
+            <input type="tel"
+                   class="form-control"
+                   id="feedback-phone"
+                   name="phone"
+                   placeholder="<?=Loc::getMessage("FEEDBACK_PHONE_PLACEHOLDER")?>">
         </div>
     </div>
+
     <div class="form-group">
-        <label for="inputPassword3" class="col-sm-3 control-label">Сообщение</label>
+        <label for="feedback-message" class="col-sm-3 control-label"><?=Loc::getMessage("FEEDBACK_MESSAGE")?></label>
         <div class="col-sm-8">
-            <textarea class="form-control" rows="3"></textarea>
+            <textarea class="form-control"
+                      id="feedback-message"
+                      name="message"
+                      rows="3"></textarea>
         </div>
     </div>
 
     <div class="form-group">
         <div class="col-sm-offset-2 col-sm-10">
-            <button type="submit" class="btn btn-default">Отправить</button>
+            <input type="submit"
+                   class="btn btn-danger"
+                   value="<?=Loc::getMessage("FEEDBACK_SUBMIT")?>">
         </div>
     </div>
+    
 </form>
