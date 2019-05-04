@@ -20,67 +20,37 @@ if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 ?>
 
 <form class="form-horizontal"
+      action="<?=$arParams["ACTION"]?>"
+      method="post"
       role="form">
 
-    <div class="alert alert-danger alert-dismissable">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-        <strong>Ошибка!</strong> Текст ошибки
-    </div>
-
-    <div class="alert alert-warning alert-dismissable">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-        <strong>Предупреждение!</strong> Текст предупреждения
-    </div>
-
-    <div class="alert alert-success alert-dismissable">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-        <strong>Успех!</strong> Успешный текст
-    </div>
 
 
-    <div class="form-group">
-        <label for="feedback-name" class="col-sm-4 control-label"><?=Loc::getMessage("FEEDBACK_NAME")?></label>
-        <div class="col-sm-7">
-            <input type="text"
-                   class="form-control"
-                   id="feedback-name"
-                   name="name"
-                   placeholder="<?=Loc::getMessage("FEEDBACK_NAME_PLACEHOLDER")?>">
+
+    <?foreach ($arResult["FILDS"] as $id=>$arField):?>
+
+        <div class="form-group">
+            <label for="feedback-<?=$id?>" class="col-sm-4 control-label"><?=$arField["title"]?></label>
+            <div class="col-sm-7">
+                <?if($arField["data_type"] == "text"):?>
+                    <textarea class="form-control"
+                              id="feedback-<?=$id?>"
+                              name="feedback-<?=$id?>"
+                              rows="3"><?=$arField["value"]?></textarea>
+                <?else:?>
+                    <input type="text"
+                           class="form-control"
+                           id="feedback-<?=$id?>"
+                           name="feedback-<?=$id?>"
+                           value="<?=$arField["value"]?>" />
+                <?endif;?>
+            </div>
         </div>
-    </div>
 
-    <div class="form-group">
-        <label for="feedback-mail" class="col-sm-4 control-label"><?=Loc::getMessage("FEEDBACK_EMAIL")?></label>
-        <div class="col-sm-7">
-            <input type="email"
-                   class="form-control"
-                   id="feedback-mail"
-                   name="mail"
-                   placeholder="<?=Loc::getMessage("FEEDBACK_EMAIL_PLACEHOLDER")?>">
-        </div>
-    </div>
 
-    <div class="form-group">
-        <label for="feedback-phone" class="col-sm-4 control-label"><?=Loc::getMessage("FEEDBACK_PHONE")?></label>
-        <div class="col-sm-7">
-            <input type="tel"
-                   class="form-control"
-                   id="feedback-phone"
-                   name="phone"
-                   placeholder="<?=Loc::getMessage("FEEDBACK_PHONE_PLACEHOLDER")?>">
-        </div>
-    </div>
+    <?endforeach;?>
 
-    <div class="form-group">
-        <label for="feedback-message" class="col-sm-4 control-label"><?=Loc::getMessage("FEEDBACK_MESSAGE")?></label>
-        <div class="col-sm-7">
-            <textarea class="form-control"
-                      id="feedback-message"
-                      name="message"
-                      placeholder="<?=Loc::getMessage("FEEDBACK_MESSAGE_PLACEHOLDER")?>"
-                      rows="3"></textarea>
-        </div>
-    </div>
+
 
     <div class="form-group">
         <div class="col-sm-offset-4 col-sm-10">
@@ -91,3 +61,4 @@ if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
     </div>
 
 </form>
+
