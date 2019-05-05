@@ -29,9 +29,14 @@ class MatrixPersonal extends CMatrixComponent
             array_pop($componentPage);
 
         if(count($componentPage) > count($this->_baseUrl)){
-            if(end($componentPage) > 0){
+            $end = end($componentPage);
+            if(!empty($end)){
                 $this->arResult["POST"] = $componentPage;
-                $componentPage = "post";
+                if($end == "addpost"){
+                    $componentPage = "add";
+                }else{
+                    $componentPage = "post";
+                }
             }else{
                 $componentPage = "list";
             }
