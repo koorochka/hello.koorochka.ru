@@ -1,5 +1,4 @@
 <?
-use Matrix\Main\Context;
 if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)
     die();
 if(class_exists("MatrixPersonal"))
@@ -11,15 +10,36 @@ if(class_exists("MatrixPersonal"))
 class MatrixPersonal extends CMatrixComponent
 {
     private $_componentPage;
-
+    private $_baseUrl;
     /**
      * parse url to array
      * @param mixed $componentPage
      */
     public function setComponentPage()
     {
-       $componentPage = "list";
-       $this->_componentPage = $componentPage;
+        global $request;
+        $componentPage = $request->getDecodedUri();
+        $componentPage = explode("/", $componentPage);
+        $this->_baseUrl = $this->arParams["SEF_BASE_URL"];
+        $this->_baseUrl = explode("/", $this->_baseUrl);
+        if(empty(end($this->_baseUrl)))
+            array_pop($this->_baseUrl);
+
+        if(empty(end($componentPage)))
+            array_pop($componentPage);
+
+        if(count($componentPage) > count($this->_baseUrl)){
+            if(end($componentPage) > 0){
+                $this->arResult["POST"] = $componentPage;
+                $componentPage = "post";
+            }else{
+                $componentPage = "list";
+            }
+        }else{
+            $componentPage = "list";
+        }
+
+        $this->_componentPage = $componentPage;
     }
 
     /**
